@@ -16,6 +16,7 @@
 #include "sha1.h"
 #include "md5.h"
 #include "romchu.h"
+#include "romc.h"
 #include "doltool.h"
 #include "fastaes.h"
 
@@ -1268,36 +1269,70 @@ int main(int argc, char **argv) {
             exit(1);
         }
 
-        if (verbose) {
-            printf("Copying %s to %s/content%d/rom\n", rom, directory,content_num);
+        char *orom = malloc(200);
+        if(!orom){
+            perror("Could not allocate output rom name\n");
+            free(workingdirectory);
+            exit(1);
         }
-        FILE *from = fopen(rom, "rb");
+        snprintf(orom, 200, "%s/content%d/romc", directory,content_num);
+        FILE *from;
+        int romc = 1;
+        if ((from = fopen(orom, "rb")) == NULL) {
+            snprintf(orom, 200, "%s/content%d/rom", directory,content_num);
+            romc = 0;
+        }
+        fclose(from);
+
+        if (verbose) {
+            printf("Copying %s to %s\n", rom, orom);
+        }
+        from = fopen(rom, "rb");
         fseek(from, 0, SEEK_END);
         size_t fromlen = ftell(from);
         fseek(from, 0, SEEK_SET);
         uint8_t *inrom = malloc(fromlen);
         if(!inrom){
-            perror("could not allocate input rom\n");
+            char* err = malloc(100);
+            sprintf(err, "Could not allocate %ld bytes for input rom\n", fromlen);
+            perror(err);
             free(workingdirectory);
+            free(orom);
+            fclose(from);
             exit(1);
         }
         fread(inrom, 1, fromlen, from);
         fclose(from);
 
-        char *orom = malloc(200);
-        if(!orom){
-            perror("Could not allocate output rom name\n");
-            free(workingdirectory);
-            free(inrom);
-            exit(1);
-        }
-        snprintf(orom, 200, "%s/content%d/rom", directory,content_num);
         from = fopen(orom, "wb");
-        fwrite(inrom, 1, fromlen, from);
+        if (romc) {
+            if (verbose) {
+                printf("Compressing %s\n", rom);
+            }
+            uint8_t *outrom = malloc(fromlen);
+            if(!outrom){
+                perror("could not allocate output rom\n");
+                free(workingdirectory);
+                exit(1);
+            }
+            int compressed_len = romc_encode(inrom, fromlen, outrom);
+            if (compressed_len == -1) {
+                perror("Could not compress rom\n");
+                free(workingdirectory);
+                free(inrom);
+                free(outrom);
+                exit(1);
+            }
+
+
+            fwrite(outrom, 1, compressed_len, from);
+            free(outrom);
+        } else {
+            fwrite(inrom, 1, fromlen, from);
+        }
         fclose(from);
         free(inrom);
         free(orom);
-
 
         char *wadname = removeext(wad),
             *outname = malloc(strlen(wadname) + 12);
