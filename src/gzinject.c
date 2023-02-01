@@ -23,6 +23,7 @@
 static uint8_t key[16] = {0};
 static uint8_t region = 0x03;
 
+static int decompress = 0;
 static int cleanup = 0;
 static int content_num = 5;
 
@@ -64,6 +65,7 @@ static const struct option cmdoptions[] = {
     { "region",required_argument,0,'r' },
     { "verbose",no_argument,&verbose,1 },
     { "directory",required_argument,0,'d' },
+    { "decompress", no_argument,&decompress,1},
     { "cleanup", no_argument,&cleanup,1},
     { "version",no_argument,0,'v'},
     { "rom",required_argument,0,'m'},

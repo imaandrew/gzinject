@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include "romc.h"
 
 /* romchu 0.6 */
 /* a decompressor for type 2 romc */
@@ -63,6 +64,9 @@ uint8_t *romchu_decompress(uint8_t *compressed, size_t comp_size, size_t *decomp
         switch(romc_type) {
             case 0:
                 memcpy(decompressed, compressed + 4, *decomp_size);
+                return decompressed;
+            case 1:
+                romc_decode(compressed, comp_size, decompressed);
                 return decompressed;
             case 2:
                 break;

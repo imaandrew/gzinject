@@ -273,3 +273,47 @@ may be spuriously long near the end of text. */
 
 	return out_index;
 }
+
+void romc_decode(uint8_t data[], int size, uint8_t out[])	/* Just the reverse of Encode(). */
+// also fixed to decode in the way bios funktion works
+{
+	int  i, j, k, r, c, z;
+	unsigned int  flags;
+	u32 decomp_size;	// i´m using decomp_size and cur_size to make sure we dont "decompress" the padding data
+    int in_index = 0;
+    int out_index = 0;
+
+	unsigned char tmp[] = {0,0,0,0};
+	for(i=0; i<4; i++) tmp[i] = data[in_index++];
+	decomp_size = tmp[0] * fourmbit;
+
+	for (i = 0; i < N - F; i++) text_buf[i] = 0xff;
+	r = N - F;  flags = z = 7;
+	for ( ; ; ) {
+		flags <<= 1;
+		z++;
+		if (z == 8) {				// read new block flag
+            if (in_index > size) break;
+			flags = data[in_index++];
+			z = 0;				// reset counter
+		}
+		if (!(flags&0x80)) {			// flag bit zero => uncompressed
+            if (in_index > size) break;
+			if(out_index<decomp_size) out[out_index] = data[in_index++];
+            text_buf[r++] = out[out_index++];
+            r &= (N - 1);
+		} else {
+            if (in_index + 1 > size) break;
+			i = data[in_index++];
+            j = data[in_index++];
+			j = j | ((i<<8)&0xf00);		// match offset
+			i = ((i>>4)&0x0f)+THRESHOLD;	// match length
+			for (k = 0; k <= i; k++) {
+				c = text_buf[(r-j-1) & (N - 1)];
+				if(out_index<decomp_size) out[out_index++] = c;
+                text_buf[r++] = c;
+                r &= (N - 1);
+			}
+		}
+	}
+}

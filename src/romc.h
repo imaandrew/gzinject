@@ -4,5 +4,6 @@
 #include <stdint.h>
 
 int romc_encode(uint8_t data[], int size, uint8_t out[]);
+void romc_decode(uint8_t data[], int size, uint8_t out[]);
 
 #endif
